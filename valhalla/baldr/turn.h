@@ -49,4 +49,13 @@ public:
 } // namespace baldr
 } // namespace valhalla
 
+namespace std {
+template <> struct hash<valhalla::baldr::Turn::Type> {
+  std::size_t operator()(const valhalla::baldr::Turn::Type& t) const {
+    return hasher(static_cast<uint8_t>(t));
+  }
+  std::hash<uint8_t> hasher;
+};
+} // namespace std
+
 #endif // VALHALLA_BALDR_TURN_H_
