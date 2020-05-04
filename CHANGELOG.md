@@ -57,6 +57,7 @@
    * ADDED: Add support for live traffic. [#2268](https://github.com/valhalla/valhalla/pull/2268)
    * ADDED: Implement per-location search filters for functional road class and forms of way. [#2289](https://github.com/valhalla/valhalla/pull/2289)
    * ADDED: Approach, multi-cue, and length updates [#2313](https://github.com/valhalla/valhalla/pull/2313)
+   * CHANGED: Sped up valhalla_build_tiles by replacing unordered_map implementation [#2349](https://github.com/valhalla/valhalla/pull/2349)
 
 ## Release Date: 2019-11-21 Valhalla 3.0.9
 * **Bug Fix**
