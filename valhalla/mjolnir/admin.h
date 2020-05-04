@@ -14,6 +14,8 @@
 #include <valhalla/midgard/pointll.h>
 #include <valhalla/mjolnir/graphtilebuilder.h>
 
+#include <parallel_hashmap/phmap.h>
+
 using namespace valhalla::baldr;
 using namespace valhalla::midgard;
 
@@ -87,8 +89,8 @@ void GetData(sqlite3* db_handle,
  */
 std::unordered_multimap<uint32_t, multi_polygon_type>
 GetAdminInfo(sqlite3* db_handle,
-             std::unordered_map<uint32_t, bool>& drive_on_right,
-             std::unordered_map<uint32_t, bool>& allow_intersection_names,
+             phmap::flat_hash_map<uint32_t, bool>& drive_on_right,
+             phmap::flat_hash_map<uint32_t, bool>& allow_intersection_names,
              const AABB2<PointLL>& aabb,
              GraphTileBuilder& tilebuilder);
 
@@ -96,7 +98,7 @@ GetAdminInfo(sqlite3* db_handle,
  * Get all the country access records from the db and save them to a map.
  * @param  db_handle    sqlite3 db handle
  */
-std::unordered_map<std::string, std::vector<int>> GetCountryAccess(sqlite3* db_handle);
+phmap::flat_hash_map<std::string, std::vector<int>> GetCountryAccess(sqlite3* db_handle);
 
 } // namespace mjolnir
 } // namespace valhalla

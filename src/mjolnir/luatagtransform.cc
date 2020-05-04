@@ -97,6 +97,7 @@ Tags LuaTagTransform::Transform(OSMType type, const Tags& maptags) {
 
     // call lua
     if (lua_pcall(state_, 2, type == OSMType::kWay ? 4 : 2, 0)) {
+      std::cout << "Error calling pcall:" << lua_tostring(state_, -1) << std::endl;
       LOG_ERROR("Failed to execute lua function for basic tag processing.");
     }
 

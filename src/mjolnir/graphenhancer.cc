@@ -14,8 +14,6 @@
 #include <set>
 #include <stdexcept>
 #include <thread>
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include <boost/filesystem/operations.hpp>
@@ -44,6 +42,8 @@
 #include "midgard/sequence.h"
 #include "midgard/util.h"
 #include "mjolnir/osmaccess.h"
+
+#include <parallel_hashmap/phmap.h>
 
 using namespace valhalla::midgard;
 using namespace valhalla::baldr;
@@ -203,7 +203,7 @@ void UpdateSpeed(DirectedEdge& directededge,
 // Turn lanes based on the turns at this node.
 void GetTurnTypes(const DirectedEdge directededge,
                   const uint32_t idx,
-                  std::set<Turn::Type>& outgoing_turn_type,
+                  phmap::flat_hash_set<Turn::Type>& outgoing_turn_type,
                   NodeInfo& startnodeinfo,
                   GraphTileBuilder& tilebuilder,
                   GraphReader& reader,
@@ -274,7 +274,7 @@ void EnhanceRightLane(const DirectedEdge directededge,
                       GraphReader& reader,
                       std::mutex& lock,
                       std::vector<uint16_t>& enhanced_tls) {
-  std::set<Turn::Type> outgoing_turn_type;
+  phmap::flat_hash_set<Turn::Type> outgoing_turn_type;
   GetTurnTypes(directededge, idx, outgoing_turn_type, startnodeinfo, tilebuilder, reader, lock);
 
   size_t index = enhanced_tls.size() - 1;
@@ -303,7 +303,7 @@ void EnhanceLeftLane(const DirectedEdge directededge,
                      GraphReader& reader,
                      std::mutex& lock,
                      std::vector<uint16_t>& enhanced_tls) {
-  std::set<Turn::Type> outgoing_turn_type;
+  phmap::flat_hash_set<Turn::Type> outgoing_turn_type;
   GetTurnTypes(directededge, idx, outgoing_turn_type, startnodeinfo, tilebuilder, reader, lock);
 
   uint16_t tl = enhanced_tls[0];
@@ -384,13 +384,13 @@ void UpdateTurnLanes(const OSMData& osmdata,
                      std::vector<TurnLanes>& turn_lanes) {
 
   // Lambda to check if the turn set includes a right turn type
-  const auto has_turn_right = [](std::set<Turn::Type>& turn_types) {
+  const auto has_turn_right = [](phmap::flat_hash_set<Turn::Type>& turn_types) {
     return turn_types.find(Turn::Type::kSlightRight) != turn_types.end() ||
            turn_types.find(Turn::Type::kRight) != turn_types.end() ||
            turn_types.find(Turn::Type::kSharpRight) != turn_types.end();
   };
   // Lambda to check if the turn set includes a left turn type
-  const auto has_turn_left = [](std::set<Turn::Type>& turn_types) {
+  const auto has_turn_left = [](phmap::flat_hash_set<Turn::Type>& turn_types) {
     return turn_types.find(Turn::Type::kSlightLeft) != turn_types.end() ||
            turn_types.find(Turn::Type::kLeft) != turn_types.end() ||
            turn_types.find(Turn::Type::kSharpLeft) != turn_types.end();
@@ -414,7 +414,7 @@ void UpdateTurnLanes(const OSMData& osmdata,
       // handle [left, none, none] --> [left, straight, straight]
       enhanced_tls = TurnLanes::lanemasks(str);
 
-      std::set<Turn::Type> outgoing_turn_type;
+      phmap::flat_hash_set<Turn::Type> outgoing_turn_type;
       GetTurnTypes(directededge, idx, outgoing_turn_type, startnodeinfo, tilebuilder, reader, lock);
       if (outgoing_turn_type.empty()) {
         directededge.set_turnlanes(false);
@@ -439,7 +439,7 @@ void UpdateTurnLanes(const OSMData& osmdata,
            (enhanced_tls.back() & kTurnLaneSlightRight)) &&
           (enhanced_tls.front() == kTurnLaneEmpty || enhanced_tls.front() == kTurnLaneNone)) {
 
-        std::set<Turn::Type> outgoing_turn_type;
+        phmap::flat_hash_set<Turn::Type> outgoing_turn_type;
         GetTurnTypes(directededge, idx, outgoing_turn_type, startnodeinfo, tilebuilder, reader, lock);
         if (outgoing_turn_type.empty()) {
           directededge.set_turnlanes(false);
@@ -548,8 +548,8 @@ bool IsUnreachable(GraphReader& reader, std::mutex& lock, DirectedEdge& directed
   }
 
   // Add the end node to the expand list
-  std::unordered_set<GraphId> visitedset; // Set of visited nodes
-  std::unordered_set<GraphId> expandset;  // Set of nodes to expand
+  phmap::flat_hash_set<GraphId> visitedset; // Set of visited nodes
+  phmap::flat_hash_set<GraphId> expandset;  // Set of nodes to expand
   expandset.insert(directededge.endnode());
 
   // Expand until we either find a tertiary or higher classification,
@@ -603,8 +603,8 @@ bool IsNotThruEdge(GraphReader& reader,
                    const GraphId& startnode,
                    DirectedEdge& directededge) {
   // Add the end node to the expand list
-  std::unordered_set<GraphId> visitedset; // Set of visited nodes
-  std::unordered_set<GraphId> expandset;  // Set of nodes to expand
+  phmap::flat_hash_set<GraphId> visitedset; // Set of visited nodes
+  phmap::flat_hash_set<GraphId> expandset;  // Set of nodes to expand
   expandset.insert(directededge.endnode());
 
   // Expand edges until exhausted, the maximum number of expansions occur,
@@ -680,12 +680,12 @@ bool IsIntersectionInternal(const GraphTile* start_tile,
   }
 
   // Lambda to check if the turn set includes a right turn type
-  const auto has_turn_right = [](std::set<Turn::Type>& turn_types) {
+  const auto has_turn_right = [](phmap::flat_hash_set<Turn::Type>& turn_types) {
     return turn_types.find(Turn::Type::kRight) != turn_types.end() ||
            turn_types.find(Turn::Type::kSharpRight) != turn_types.end();
   };
   // Lambda to check if the turn set includes a left turn type
-  const auto has_turn_left = [](std::set<Turn::Type>& turn_types) {
+  const auto has_turn_left = [](phmap::flat_hash_set<Turn::Type>& turn_types) {
     return turn_types.find(Turn::Type::kLeft) != turn_types.end() ||
            turn_types.find(Turn::Type::kSharpLeft) != turn_types.end();
   };
@@ -711,7 +711,7 @@ bool IsIntersectionInternal(const GraphTile* start_tile,
   // edges onto the candidate edge.
   bool oneway_inbound = false;
   uint32_t heading = startnodeinfo.heading(idx);
-  std::set<Turn::Type> incoming_turn_type;
+  phmap::flat_hash_set<Turn::Type> incoming_turn_type;
   const DirectedEdge* diredge = tile->directededge(startnodeinfo.edge_index());
   for (uint32_t i = 0; i < startnodeinfo.edge_count(); i++, diredge++) {
     // Skip the candidate directed edge and any non-road edges. Skip any edges
@@ -773,7 +773,7 @@ bool IsIntersectionInternal(const GraphTile* start_tile,
   // Iterate through outbound edges and get turn degrees from the candidate
   // edge onto outbound driveable edges.
   bool oneway_outbound = false;
-  std::set<Turn::Type> outgoing_turn_type;
+  phmap::flat_hash_set<Turn::Type> outgoing_turn_type;
   diredge = tile->directededge(node->edge_index());
   for (uint32_t i = 0; i < node->edge_count(); i++, diredge++) {
     // Skip opposing directed edge and any edge that is not a road. Skip any
@@ -1439,7 +1439,7 @@ void enhance(const boost::property_tree::ptree& pt,
     LOG_WARN("Admin db " + *database + " not found.  Not saving admin information.");
   }
 
-  std::unordered_map<std::string, std::vector<int>> country_access =
+  phmap::flat_hash_map<std::string, std::vector<int>> country_access =
       GetCountryAccess(admin_db_handle);
 
   // Local Graphreader
@@ -1622,8 +1622,7 @@ void enhance(const boost::property_tree::ptree& pt,
           // country defaults.  Otherwise, country specific access wins.
           // Currently, overrides only exist for Trunk RC and Uses below.
           OSMAccess target{e_offset.wayid()};
-          std::unordered_map<std::string, std::vector<int>>::const_iterator country_iterator =
-              country_access.find(country_code);
+          const auto country_iterator = country_access.find(country_code);
           if (admin_index != 0 && country_iterator != country_access.end() &&
               directededge.use() != Use::kFerry &&
               (directededge.classification() <= RoadClass::kPrimary ||

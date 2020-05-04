@@ -29,6 +29,8 @@
 #include "mjolnir/edgeinfobuilder.h"
 #include "mjolnir/graphtilebuilder.h"
 
+#include <parallel_hashmap/phmap.h>
+
 using namespace valhalla::midgard;
 using namespace valhalla::baldr;
 using namespace valhalla::mjolnir;
@@ -442,7 +444,7 @@ void BuildTileSet(const std::string& ways_file,
 
   // Lots of times in a given tile we may end up accessing the same
   // shape/attributes twice we avoid doing this by caching it here
-  std::unordered_map<uint32_t, std::pair<float, uint32_t>> geo_attribute_cache;
+  phmap::flat_hash_map<uint32_t, std::pair<float, uint32_t>> geo_attribute_cache;
 
   ////////////////////////////////////////////////////////////////////////////
   // Iterate over tiles
@@ -465,8 +467,8 @@ void BuildTileSet(const std::string& ways_file,
       // tile is entirely inside the polygon
       bool tile_within_one_admin = false;
       std::unordered_multimap<uint32_t, multi_polygon_type> admin_polys;
-      std::unordered_map<uint32_t, bool> drive_on_right;
-      std::unordered_map<uint32_t, bool> allow_intersection_names;
+      phmap::flat_hash_map<uint32_t, bool> drive_on_right;
+      phmap::flat_hash_map<uint32_t, bool> allow_intersection_names;
 
       if (admin_db_handle) {
         admin_polys = GetAdminInfo(admin_db_handle, drive_on_right, allow_intersection_names,

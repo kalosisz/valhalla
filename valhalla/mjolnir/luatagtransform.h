@@ -9,13 +9,15 @@ extern "C" {
 
 #include <valhalla/mjolnir/osmdata.h>
 
+#include <parallel_hashmap/phmap.h>
+
 #include <string>
 #include <unordered_map>
 
 namespace valhalla {
 namespace mjolnir {
 
-using Tags = std::unordered_map<std::string, std::string>;
+using Tags = phmap::flat_hash_map<std::string, std::string>;
 
 /**
  */

@@ -2,9 +2,9 @@
 #include "baldr/datetime.h"
 #include "midgard/logging.h"
 #include <boost/filesystem/operations.hpp>
+#include <parallel_hashmap/phmap.h>
 #include <spatialite.h>
 #include <sqlite3.h>
-#include <unordered_map>
 
 namespace valhalla {
 namespace mjolnir {
@@ -139,8 +139,8 @@ void GetData(sqlite3* db_handle,
              const std::string& sql,
              GraphTileBuilder& tilebuilder,
              std::unordered_multimap<uint32_t, multi_polygon_type>& polys,
-             std::unordered_map<uint32_t, bool>& drive_on_right,
-             std::unordered_map<uint32_t, bool>& allow_intersection_names) {
+             phmap::flat_hash_map<uint32_t, bool>& drive_on_right,
+             phmap::flat_hash_map<uint32_t, bool>& allow_intersection_names) {
   uint32_t result = 0;
   bool dor = true;
   bool intersection_name = false;
@@ -210,8 +210,8 @@ void GetData(sqlite3* db_handle,
 // Get the admin polys that intersect with the tile bounding box.
 std::unordered_multimap<uint32_t, multi_polygon_type>
 GetAdminInfo(sqlite3* db_handle,
-             std::unordered_map<uint32_t, bool>& drive_on_right,
-             std::unordered_map<uint32_t, bool>& allow_intersection_names,
+             phmap::flat_hash_map<uint32_t, bool>& drive_on_right,
+             phmap::flat_hash_map<uint32_t, bool>& allow_intersection_names,
              const AABB2<PointLL>& aabb,
              GraphTileBuilder& tilebuilder) {
   std::unordered_multimap<uint32_t, multi_polygon_type> polys;
@@ -255,9 +255,9 @@ GetAdminInfo(sqlite3* db_handle,
 }
 
 // Get all the country access records from the db and save them to a map.
-std::unordered_map<std::string, std::vector<int>> GetCountryAccess(sqlite3* db_handle) {
+phmap::flat_hash_map<std::string, std::vector<int>> GetCountryAccess(sqlite3* db_handle) {
 
-  std::unordered_map<std::string, std::vector<int>> country_access;
+  phmap::flat_hash_map<std::string, std::vector<int>> country_access;
 
   if (!db_handle) {
     return country_access;
